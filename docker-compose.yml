@@ -1,0 +1,74 @@
+services:
+  db:
+    image: postgres:15
+    container_name: cloudops-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cloudops
+    ports:
+      - "5433:5432"
+    volumes:
+      - cloudops_db_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: cloudops-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/cloudops
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "8001:8000"
+    restart: always
+    depends_on:
+      - db
+      - otel-collector
+
+  frontend:
+    build: ./frontend
+    container_name: cloudops-frontend
+    environment:
+      API_URL:  http://backend:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+
+  prometheus:
+    image: prom/prometheus
+    container_name: cloudops-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana
+    container_name: cloudops-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: cloudops-otel
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./otel/otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+  
+  node-exporter:
+    image: prom/node-exporter
+    container_name: cloudops-node-exporter
+    ports:
+      - "9100:9100"
+
+volumes:
+  cloudops_db_data:
