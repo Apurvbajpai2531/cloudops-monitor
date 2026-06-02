@@ -1,0 +1,46 @@
+name: CloudOps Monitor CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Backend Image
+        run: docker build -t cloudops-backend ./backend
+
+      - name: Build Frontend Image
+        run: docker build -t cloudops-frontend ./frontend
+
+      - name: Start Services
+        run: docker compose up -d --build
+
+      - name: Wait for Services
+        run: sleep 20
+
+      - name: Check Backend Health
+        run: curl -f http://localhost:8001/health
+
+      - name: Check Backend Metrics
+        run: curl -f http://localhost:8001/metrics
+
+      - name: Check Frontend
+        run: curl -f http://localhost:8501
+
+      - name: Check Prometheus
+        run: curl -f http://localhost:9090/-/healthy
+
+      - name: Show Running Containers
+        run: docker ps
+
+      - name: Stop Services
+        if: always()
+        run: docker compose down
