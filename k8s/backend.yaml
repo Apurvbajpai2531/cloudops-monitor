@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: cloudops-backend:latest
+          image: cloudops-monitor-backend:latest
           imagePullPolicy: Never
           env:
             - name: DATABASE_URL

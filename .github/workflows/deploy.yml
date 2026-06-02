@@ -1,0 +1,32 @@
+name: CloudOps CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build Backend Image
+        run: docker build -t cloudops-backend ./backend
+
+      - name: Build Frontend Image
+        run: docker build -t cloudops-frontend ./frontend
+
+      - name: Run Docker Compose
+        run: docker compose up -d --build
+
+      - name: Wait
+        run: sleep 15
+
+      - name: Backend Health Check
+        run: curl -f http://localhost:8000/health
+
+      - name: Stop Containers
+        run: docker compose down
